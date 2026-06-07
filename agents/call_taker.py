@@ -15,13 +15,19 @@ dashboard. It never dispatches agents itself (the supervisor owns dispatch).
 
 from __future__ import annotations
 
+import logging
 import textwrap
 
 from livekit.agents import Agent, RunContext, function_tool
+from livekit.agents import llm
+from livekit.agents._exceptions import APIStatusError
+from livekit.agents.voice.agent import ModelSettings
 
-from llm import build_llm
+from llm import build_fallback_llm, build_llm
 from state import EventType, IncidentState
 from tools.guidebook import Guidebook
+
+logger = logging.getLogger("call_taker")
 
 INSTRUCTIONS = textwrap.dedent(
     """\
@@ -67,15 +73,40 @@ INSTRUCTIONS = textwrap.dedent(
 
 class CallTaker(Agent):
     def __init__(self, incident: IncidentState, *, room=None) -> None:
-        super().__init__(instructions=INSTRUCTIONS, llm=build_llm())
+        super().__init__(instructions=INSTRUCTIONS, llm=build_llm("call_taker"))
         self.incident = incident
         self._room = room  # Phase 2/4: publish facts + dashboard data packets
         self._guidebook = Guidebook()
+        self._fallback_llm = build_fallback_llm("call_taker")
 
     async def on_enter(self) -> None:
         # Warm the Moss index so the first guidebook lookup is fast. Guarded inside
         # preload(); the spoken greeting is triggered from worker.py after connect.
         await self._guidebook.preload()
+
+    async def llm_node(
+        self,
+        chat_ctx: llm.ChatContext,
+        tools: list[llm.Tool],
+        model_settings: ModelSettings,
+    ):
+        yielded_any = False
+        try:
+            async for chunk in Agent.default.llm_node(self, chat_ctx, tools, model_settings):
+                yielded_any = True
+                yield chunk
+        except APIStatusError as e:
+            if e.status_code == 400 and not yielded_any and self._fallback_llm is not None:
+                logger.warning(
+                    "primary LLM 400 error (%s), retrying with fallback model",
+                    e.body.get("message", "") if isinstance(e.body, dict) else "",
+                )
+                stream = self._fallback_llm.chat(chat_ctx=chat_ctx, tools=tools)
+                async with stream:
+                    async for chunk in stream:
+                        yield chunk
+            else:
+                raise
 
     @function_tool()
     async def record_fact(self, context: RunContext, key: str, value: str) -> str:

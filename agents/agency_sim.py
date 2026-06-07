@@ -74,7 +74,7 @@ def _instructions(agency: dict, facts: dict) -> str:
 
 class AgencySimAgent(Agent):
     def __init__(self, agency: dict, facts: dict) -> None:
-        super().__init__(instructions=_instructions(agency, facts), llm=build_llm())
+        super().__init__(instructions=_instructions(agency, facts), llm=build_llm("agency_sim"))
 
 
 async def run_agency_sim(ctx, meta: dict) -> None:

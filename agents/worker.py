@@ -39,7 +39,7 @@ def _setup_dev_logging() -> None:
     ]
     for h in handlers:
         h.setFormatter(fmt)
-    for name in ("supervisor", "web_research", "guidebook", "liaison", "agency_sim", "connect"):
+    for name in ("supervisor", "web_research", "guidebook", "liaison", "agency_sim", "connect", "llm"):
         log = logging.getLogger(name)
         log.setLevel(logging.DEBUG)
         for h in handlers:
@@ -107,7 +107,7 @@ async def _run_orchestrator(ctx: JobContext) -> None:
         ),
         turn_detection=MultilingualModel(),
         vad=ctx.proc.userdata["vad"],
-        preemptive_generation=True,
+        preemptive_generation=False,
     )
 
     await session.start(

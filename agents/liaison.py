@@ -65,7 +65,7 @@ class LiaisonAgent(Agent):
         ctx,        # JobContext — used to publish the finding to the main room
         main_room: str,
     ) -> None:
-        super().__init__(instructions=_instructions(agency, facts), llm=build_llm())
+        super().__init__(instructions=_instructions(agency, facts), llm=build_llm("liaison"))
         self._agency_id = agency["id"]
         self._done_event = done_event
         self._ctx = ctx
