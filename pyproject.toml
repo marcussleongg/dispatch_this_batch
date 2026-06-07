@@ -21,8 +21,8 @@ dependencies = [
 truefoundry = ["livekit-plugins-openai~=1.5"]
 # Phase 4 dashboard backend (if not reusing the starter's Next.js frontend).
 backend = ["fastapi>=0.115", "uvicorn[standard]>=0.30"]
-# Phase 1 offline ingest (Unsiloed parse).
-ingest = ["httpx>=0.27"]
+# Phase 1 offline ingest (Unsiloed parse — documented REST flow uses requests).
+ingest = ["requests>=2.31"]
 
 [dependency-groups]
 dev = ["pytest", "pytest-asyncio", "ruff"]

@@ -30,7 +30,16 @@ def chemicals() -> dict[str, dict[str, Any]]:
     return _load("chemicals_fallback.json")["chemicals"]
 
 
+@functools.lru_cache(maxsize=1)
+def guidebook() -> list[dict[str, Any]]:
+    """Curated ERG corpus ({id, text, metadata}) indexed into Moss alongside the
+    Unsiloed-parsed ERG. Deterministic coverage of the demo chemicals (Phase 1)."""
+    with open(SEED_DIR / "guidebook.json", encoding="utf-8") as f:
+        return json.load(f)
+
+
 if __name__ == "__main__":
     # Quick smoke check: `python agents/seed_data.py`
     print(f"agencies: {[a['id'] for a in agencies()]}")
     print(f"chemicals: {list(chemicals())}")
+    print(f"guidebook: {[d['id'] for d in guidebook()]}")

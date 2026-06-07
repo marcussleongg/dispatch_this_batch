@@ -15,5 +15,6 @@ dist/
 # Local data / scratch
 *.log
 .DS_Store
+data/
 
 Makefile

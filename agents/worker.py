@@ -17,6 +17,8 @@ start the supervisor's event-driven loop alongside the session.
 
 from __future__ import annotations
 
+import asyncio
+
 from dotenv import load_dotenv
 
 # Match the starter's convention (.env.local) but also accept a plain .env.
@@ -37,6 +39,7 @@ from livekit.plugins.turn_detector.multilingual import MultilingualModel  # noqa
 
 from call_taker import CallTaker  # noqa: E402
 from state import IncidentState  # noqa: E402
+from supervisor import Supervisor  # noqa: E402
 
 # Dispatch name a frontend / SIP trunk targets to reach the orchestrator.
 ORCHESTRATOR_NAME = "dispatch-orchestrator"
@@ -80,6 +83,8 @@ async def orchestrator(ctx: JobContext) -> None:
             ),
         ),
     )
+
+    asyncio.create_task(Supervisor().run(incident, session))
 
     await ctx.connect()
 

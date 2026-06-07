@@ -1261,7 +1261,7 @@ backend = [
     { name = "uvicorn", extra = ["standard"] },
 ]
 ingest = [
-    { name = "httpx" },
+    { name = "requests" },
 ]
 truefoundry = [
     { name = "livekit-plugins-openai" },
@@ -1277,12 +1277,12 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", marker = "extra == 'backend'", specifier = ">=0.115" },
-    { name = "httpx", marker = "extra == 'ingest'", specifier = ">=0.27" },
     { name = "livekit-agents", extras = ["silero", "turn-detector"], specifier = ">=1.5.16,<2.0" },
     { name = "livekit-plugins-ai-coustics", specifier = "~=0.2" },
     { name = "livekit-plugins-openai", marker = "extra == 'truefoundry'", specifier = "~=1.5" },
     { name = "moss", specifier = ">=1.4" },
     { name = "python-dotenv" },
+    { name = "requests", marker = "extra == 'ingest'", specifier = ">=2.31" },
     { name = "uvicorn", extras = ["standard"], marker = "extra == 'backend'", specifier = ">=0.30" },
 ]
 provides-extras = ["truefoundry", "backend", "ingest"]

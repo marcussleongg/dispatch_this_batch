@@ -1,0 +1,32 @@
+[
+  {
+    "id": "erg-un1005-ammonia",
+    "text": "UN 1005, Ammonia, anhydrous. ERG Guide 125 (gases - corrosive). Initial isolation: isolate the spill or leak area for at least 300 feet (100 meters) in all directions. Protective action: for a large spill, evacuate up to 1 mile (1.6 km) downwind; keep people upwind and uphill. Hazards: toxic and corrosive gas; inhalation causes severe irritation of the eyes, nose, throat, and lungs. Responders require full protective clothing and self-contained breathing apparatus (SCBA). Vapors may form a low-lying cloud.",
+    "metadata": { "un": "1005", "name": "Ammonia, anhydrous", "guide": "125" }
+  },
+  {
+    "id": "erg-un1017-chlorine",
+    "text": "UN 1017, Chlorine. ERG Guide 124 (gases - toxic and/or corrosive - oxidizing). Initial isolation: isolate the spill or leak area for at least 600 feet (200 meters) in all directions. Protective action: for a large spill, evacuate up to 3 miles (5 km) downwind. Hazards: toxic gas, heavier than air, pools in low and confined areas; greenish-yellow color, pungent odor; severe respiratory hazard. Stay upwind and uphill; avoid low ground.",
+    "metadata": { "un": "1017", "name": "Chlorine", "guide": "124" }
+  },
+  {
+    "id": "erg-un1203-gasoline",
+    "text": "UN 1203, Gasoline (petrol). ERG Guide 128 (flammable liquids - non-polar / water-immiscible). Initial isolation: isolate the spill area for at least 150 feet (50 meters) in all directions. Protective action: for a tank, rail car, or tank truck involved in fire, evacuate 0.3 mile (0.5 km) in all directions. Hazards: highly flammable; vapors are heavier than air and may travel to an ignition source and flash back. Eliminate all ignition sources.",
+    "metadata": { "un": "1203", "name": "Gasoline", "guide": "128" }
+  },
+  {
+    "id": "erg-un1075-lpg",
+    "text": "UN 1075, Petroleum gases, liquefied (LPG / propane). ERG Guide 115 (gases - flammable, including refrigerated liquids). Initial isolation: isolate the leak area for at least 330 feet (100 meters) in all directions. For a large fire involving a tank, rail car, or tank truck, evacuate 1 mile (1.6 km) in all directions; consider initial evacuation of 1 mile for a BLEVE risk. Hazards: extremely flammable; vapors heavier than air; may cause asphyxiation.",
+    "metadata": { "un": "1075", "name": "Liquefied petroleum gas", "guide": "115" }
+  },
+  {
+    "id": "erg-un1830-sulfuric-acid",
+    "text": "UN 1830, Sulfuric acid (with more than 51% acid). ERG Guide 137 (substances - water-reactive - corrosive). Initial isolation: isolate the spill or leak area for at least 150 feet (50 meters) in all directions. Hazards: corrosive; reacts violently with water, releasing heat and toxic, corrosive fumes. Do not get water inside the container. Keep upwind; avoid contact with skin, eyes, and clothing.",
+    "metadata": { "un": "1830", "name": "Sulfuric acid", "guide": "137" }
+  },
+  {
+    "id": "erg-un1971-natural-gas",
+    "text": "UN 1971, Methane / Natural gas, compressed. ERG Guide 115 (gases - flammable). Initial isolation: isolate the leak area for at least 330 feet (100 meters) in all directions. For a large fire involving a tank or tank truck, evacuate 1 mile (1.6 km) in all directions. Hazards: extremely flammable; lighter than air, will not pool but can collect in enclosed spaces; simple asphyxiant.",
+    "metadata": { "un": "1971", "name": "Natural gas, compressed", "guide": "115" }
+  }
+]
