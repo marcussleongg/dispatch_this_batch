@@ -2,12 +2,18 @@
 
 One inbound 911-style call is answered by an AI call-taker (the **single voice** to the caller); a **supervisor** then spins up a **swarm of parallel action agents** mid-call — live web research + simulated agency calls — while a **command-center dashboard** streams every agent and transcript.
 
-- **Retrieval is inline** (Moss in the hot path) — the guidebook is a tool
-  (`lookup_guidebook`), not a separate agent.
-- **Separate agents are reserved for concurrent _actions_** (web research, agency
-  calls), dispatched live by the supervisor via LiveKit.
-- **One process, no broker** — orchestrator + supervisor + workers coordinate via an
-  in-process `IncidentState` + `asyncio.Queue`. No DB; static config is seed JSON.
+This project simulates specifically a call regarding a gas leak, with the document ingested being a guideline/protocol on how to handle it. This can be generalized to other emergency calls.
+
+What I think is unique:
+Live indexing of information obtained during call and web search (e.g. weather, wind direction), both locally and on the cloud, to allow for subagents (separate OS env) to query and retrieve the freshest information from other **ongoing calls**. This simulates how a real call enter operates.
+
+Stack used:
+
+- **Unsiloed** to parse [Department of Transportation 2024 Emergency Response Guidebook](https://www.phmsa.dot.gov/sites/phmsa.dot.gov/files/2024-04/ERG2024-Eng-Web-a.pdf)
+- 2 voice agent environments set up with **Livekit**, and phone number for system to run through inbound phone call
+- **Moss** to index document chunks and for live querying during calls
+- LLM routed through **TrueFoundry**, using **Qwen-Plus** and **Minimax-M3**
+- Web search tool using Tavily
 
 ---
 
@@ -100,11 +106,11 @@ ERG2024 lists isolation or evacuation distanc
 
 ## Voice system
 
-- Livekit agents with phone number allowing for inbound calls. One environment for main call, one environment for outbound subagents.
+- **Livekit** agents with **phone number** allowing for **inbound calls**. One environment for main call, one environment for outbound subagents
 
 ## LLM routing
 
-- Used **TrueFoundry priority routing virtual model** with Qwen-Plus and Minimax-M3
+- Used **TrueFoundry priority routing virtual model** with **Qwen-Plus** and **Minimax-M3**
 
 ## What I would have added with more time
 
@@ -112,3 +118,5 @@ ERG2024 lists isolation or evacuation distanc
 - Subagents' live querying of the cloud has not been fully implemented, but it should be implemented with a hook/trigger where querying is done when the cloud index is updated
 - More specialized subagents: medical, fire incident, etc. where more protocol documents are ingested and parsed over to provide even more use cases
 - And so generalization of orchestrator agent that calls these specialized agents
+
+---
