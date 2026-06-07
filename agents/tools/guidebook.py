@@ -22,6 +22,9 @@ logger = logging.getLogger("guidebook")
 
 UN_RE = re.compile(r"\b(\d{4})\b")
 TOP_K = 3
+# Blend semantic + keyword: UN numbers and ERG guide numbers are exact identifiers,
+# so leaning toward keyword (BM25) improves exact-match ranking.
+ALPHA = 0.5
 
 
 class Guidebook:
@@ -59,7 +62,7 @@ class Guidebook:
                 from moss import QueryOptions
 
                 result = await self._client.query(
-                    self._index, query, QueryOptions(top_k=TOP_K)
+                    self._index, query, QueryOptions(top_k=TOP_K, alpha=ALPHA)
                 )
                 docs = getattr(result, "docs", None) or []
                 top_score = (

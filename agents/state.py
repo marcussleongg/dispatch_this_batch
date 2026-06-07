@@ -51,3 +51,17 @@ class IncidentState:
 
     def add_finding(self, source: str, summary: str, **extra: Any) -> None:
         self.findings.append({"source": source, "summary": summary, **extra})
+
+
+# ── Incident registry (Phase 3) ────────────────────────────────────────────────
+# Dispatched sub-agents (liaison, agency-sim) run as separate jobs in the same
+# process and look up the live IncidentState here instead of receiving it directly.
+_registry: dict[str, "IncidentState"] = {}
+
+
+def register_incident(incident: "IncidentState") -> None:
+    _registry[incident.incident_id] = incident
+
+
+def get_incident(incident_id: str) -> "IncidentState | None":
+    return _registry.get(incident_id)

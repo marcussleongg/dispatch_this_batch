@@ -20,9 +20,7 @@ TAVILY_URL = "https://api.tavily.com/search"
 async def web_research(incident: IncidentState) -> None:
     facts = incident.facts
     location = facts.get("location", "unknown location")
-    chemical = facts.get("chemical") or (
-        f"UN {facts['un_number']}" if "un_number" in facts else "unknown chemical"
-    )
+    chemical = facts.get("chemical") or facts.get("un_number") or "unknown chemical"
 
     api_key = os.getenv("TAVILY_API_KEY")
     if not api_key:
@@ -34,24 +32,30 @@ async def web_research(incident: IncidentState) -> None:
         _record(incident, finding)
         return
 
-    query = f"current wind direction weather {location} emergency hazmat {chemical}"
+    query = f"current wind direction and speed weather conditions near {location}"
     try:
         import httpx
 
         async with httpx.AsyncClient(timeout=10) as client:
             resp = await client.post(
                 TAVILY_URL,
-                json={"api_key": api_key, "query": query, "max_results": 3},
+                json={
+                    "api_key": api_key,
+                    "query": query,
+                    "max_results": 3,
+                    "include_answer": True,
+                },
             )
             resp.raise_for_status()
-            results = resp.json().get("results", [])
+            data = resp.json()
 
-        if results:
-            # Take the most relevant snippet — the call-taker LLM rephrases it anyway.
-            finding = results[0].get("content", "")[:300].strip()
-            logger.info("web_research finding (%.80s)", finding)
-        else:
-            finding = f"No current conditions data found for {location}."
+        finding = data.get("answer", "").strip()
+        if not finding:
+            results = data.get("results", [])
+            finding = results[0].get("content", "")[:300].strip() if results else ""
+        if not finding:
+            finding = f"No current conditions data found near {location}."
+        logger.info("web_research finding (%.80s)", finding)
 
     except Exception:
         logger.exception("web_research HTTP call failed")
