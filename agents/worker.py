@@ -39,7 +39,7 @@ def _setup_dev_logging() -> None:
     ]
     for h in handlers:
         h.setFormatter(fmt)
-    for name in ("supervisor", "web_research", "guidebook", "liaison", "agency_sim", "connect", "llm"):
+    for name in ("supervisor", "web_research", "guidebook", "liaison", "agency_sim", "connect", "llm", "call_taker", "live_conditions"):
         log = logging.getLogger(name)
         log.setLevel(logging.DEBUG)
         for h in handlers:
@@ -68,6 +68,7 @@ from call_taker import CallTaker  # noqa: E402
 from liaison import run_liaison  # noqa: E402
 from state import IncidentState  # noqa: E402
 from supervisor import Supervisor  # noqa: E402
+from tools.live_conditions import LiveConditions  # noqa: E402
 
 ORCHESTRATOR_NAME = "dispatch-orchestrator"
 
@@ -98,6 +99,7 @@ async def session_handler(ctx: JobContext) -> None:
 
 async def _run_orchestrator(ctx: JobContext) -> None:
     incident = IncidentState()
+    incident.live = LiveConditions(incident.incident_id)
     state_mod.register_incident(incident)
 
     session = AgentSession(

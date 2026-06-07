@@ -223,10 +223,8 @@ Note: there is **no `agents/guidebook.py`** — the guidebook is an inline tool 
 
 # To (consider) add:
 
-- Add telephony
-- Truefoundry API
 - Generalization other than this incident (remove columns in index and agent data passing)
-- Reduce latency in LLMs
 - More documents, other specialized agents? e.g. medical incident, fire, etc. Will the orchestrator spin up these specialized for just one agent (calltaker) searching through all?
-- Take-over call feature
+- include saving data on moss (live context written across each agent) THIS!!! make sure other agents query the live index
 - Fix the web research tool call to be more proactive
+- add logs to all calls so we can see the tools calls and the live indexing/querying

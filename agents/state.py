@@ -13,14 +13,18 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from tools.live_conditions import LiveConditions
 
 
 class EventType(str, Enum):
-    FACT = "fact"               # orchestrator extracted a new incident fact
-    FINDING = "finding"         # a worker (web/agency) returned a result
-    WORKER_STATUS = "worker"    # a dispatched worker changed state
-    TIMER = "timer"             # a scheduled tick the supervisor reacts to
+    FACT = "fact"                       # orchestrator extracted a new incident fact
+    RESEARCH_TRIGGER = "research_trigger"  # call-taker signalled proactive research needed
+    FINDING = "finding"                 # a worker (web/agency) returned a result
+    WORKER_STATUS = "worker"            # a dispatched worker changed state
+    TIMER = "timer"                     # a scheduled tick the supervisor reacts to
 
 
 @dataclass
@@ -42,6 +46,10 @@ class IncidentState:
     # The event bus the supervisor awaits (Phase 2). Created lazily so it binds
     # to the running loop, not import-time.
     events: asyncio.Queue[Event] = field(default_factory=asyncio.Queue)
+
+    # Per-call live Moss index for queryable findings/annotations. Set by worker.py
+    # at orchestrator start; None if Moss creds are not configured.
+    live: "LiveConditions | None" = field(default=None)
 
     async def emit(self, type: EventType, **payload: Any) -> None:
         await self.events.put(Event(type=type, payload=payload))

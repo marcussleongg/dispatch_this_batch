@@ -25,6 +25,7 @@ from livekit.protocol.room import SendDataRequest
 import seed_data
 import voices
 from llm import build_llm
+from tools.live_conditions_cloud import query_live_index
 
 logger = logging.getLogger("liaison")
 
@@ -45,10 +46,12 @@ def _instructions(agency: dict, facts: dict) -> str:
 {facts_lines}
 
         Your job:
-        1. Introduce yourself briefly ("Emergency Dispatch calling about an active incident…").
-        2. Relay the key incident details clearly and concisely.
-        3. Ask for their specific guidance (isolation distances, medical protocols, etc.).
-        4. Once you have received clear, actionable guidance, call `submit_finding` with a
+        1. Call `lookup_live_conditions` with "current conditions wind weather" to get any
+           live situational data (wind direction, weather) before you start speaking.
+        2. Introduce yourself briefly ("Emergency Dispatch calling about an active incident…").
+        3. Relay the key incident details clearly and concisely, including any live conditions.
+        4. Ask for their specific guidance (isolation distances, medical protocols, etc.).
+        5. Once you have received clear, actionable guidance, call `submit_finding` with a
            concise one-paragraph summary of their advice, then conclude the call politely.
 
         Speak in plain sentences — no markdown, lists, or code. Keep each turn to 2–3
@@ -64,12 +67,30 @@ class LiaisonAgent(Agent):
         done_event: asyncio.Event,
         ctx,        # JobContext — used to publish the finding to the main room
         main_room: str,
+        incident_id: str = "",
     ) -> None:
         super().__init__(instructions=_instructions(agency, facts), llm=build_llm("liaison"))
         self._agency_id = agency["id"]
         self._done_event = done_event
         self._ctx = ctx
         self._main_room = main_room
+        self._incident_id = incident_id
+
+    @function_tool()
+    async def lookup_live_conditions(self, context: RunContext, query: str) -> str:
+        """Query live conditions gathered during this incident: wind direction,
+        weather, agency dispatch status, or any web research findings.
+
+        Use this before briefing the agency or when you need situational context
+        that wasn't in the initial facts (e.g. current wind, evacuation zones).
+
+        Args:
+            query: what you need, e.g. "wind direction", "current weather conditions"
+        """
+        if not self._incident_id:
+            return "Live conditions not available."
+        result = await query_live_index(self._incident_id, query)
+        return result if result else "No live conditions data available yet."
 
     @function_tool()
     async def submit_finding(self, context: RunContext, summary: str) -> str:
@@ -111,6 +132,7 @@ class LiaisonAgent(Agent):
 async def run_liaison(ctx, meta: dict) -> None:
     agency_id = meta.get("agency_id")
     main_room = meta.get("main_room", "")
+    incident_id = meta.get("incident_id", "")
     # Facts were snapshotted into metadata at dispatch time — no registry needed.
     facts = meta.get("facts") or {}
 
@@ -131,7 +153,7 @@ async def run_liaison(ctx, meta: dict) -> None:
     )
 
     await session.start(
-        agent=LiaisonAgent(agency, facts, done_event, ctx, main_room),
+        agent=LiaisonAgent(agency, facts, done_event, ctx, main_room, incident_id=incident_id),
         room=ctx.room,
     )
     await ctx.connect()
