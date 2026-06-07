@@ -1,0 +1,35 @@
+[project]
+name = "mosshack-dispatch-swarm"
+version = "0.1.0"
+description = "AI Emergency Dispatch Swarm (MossHack) — LiveKit voice orchestrator + dynamic agent fan-out"
+requires-python = ">=3.11,<3.15"
+dependencies = [
+    # LiveKit Agents runtime. STT/LLM/TTS run through LiveKit Inference (no
+    # per-provider keys), matching the moss-hacker-starter. silero = VAD,
+    # turn-detector = contextual end-of-turn model.
+    "livekit-agents[silero,turn-detector]>=1.5.16,<2.0",
+    # Background voice / noise cancellation on input audio (noisy demo venues).
+    "livekit-plugins-ai-coustics~=0.2",
+    # Moss SDK — Phase 1 guidebook retrieval (search) + the dashboard context feed.
+    "moss>=1.4",
+    "python-dotenv",
+]
+
+[project.optional-dependencies]
+# TrueFoundry seam: route the LLM through an OpenAI-compatible gateway (MiniMax /
+# Qwen) instead of LiveKit Inference. Install with `uv sync --extra truefoundry`.
+truefoundry = ["livekit-plugins-openai~=1.5"]
+# Phase 4 dashboard backend (if not reusing the starter's Next.js frontend).
+backend = ["fastapi>=0.115", "uvicorn[standard]>=0.30"]
+# Phase 1 offline ingest (Unsiloed parse).
+ingest = ["httpx>=0.27"]
+
+[dependency-groups]
+dev = ["pytest", "pytest-asyncio", "ruff"]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"

@@ -1,0 +1,32 @@
+{
+  "_note": "Exact UN# config — validates Moss retrieval and is the hardcoded demo fallback if retrieval misses. Distances reflect ERG 2024 guidance (rounded for demo).",
+  "chemicals": {
+    "1005": {
+      "un": "1005",
+      "name": "Ammonia, anhydrous",
+      "erg_guide": "125",
+      "initial_isolation_ft": 300,
+      "protective_evacuation_mi": 1.0,
+      "hazards": "Toxic and corrosive. Vapors are lighter than air but a cold cloud may hang low. Inhalation causes severe respiratory irritation.",
+      "actions": "Isolate spill/leak 300 ft in all directions. Stay upwind. Evacuate 1 mile downwind for a large release. Responders need full protective gear and SCBA."
+    },
+    "1017": {
+      "un": "1017",
+      "name": "Chlorine",
+      "erg_guide": "124",
+      "initial_isolation_ft": 600,
+      "protective_evacuation_mi": 3.0,
+      "hazards": "Toxic gas, heavier than air; pools in low areas. Severe respiratory hazard.",
+      "actions": "Isolate 600 ft. Evacuate up to 3 miles downwind for a large release. Stay upwind and uphill."
+    },
+    "1203": {
+      "un": "1203",
+      "name": "Gasoline",
+      "erg_guide": "128",
+      "initial_isolation_ft": 150,
+      "protective_evacuation_mi": 0.3,
+      "hazards": "Highly flammable. Vapors may travel to an ignition source and flash back.",
+      "actions": "Eliminate ignition sources. Isolate 150 ft. Evacuate 0.3 mile if a tank is involved in fire."
+    }
+  }
+}

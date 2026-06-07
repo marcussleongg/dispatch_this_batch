@@ -1,0 +1,28 @@
+{
+  "agencies": [
+    {
+      "id": "poison_control",
+      "name": "Poison Control Center",
+      "handles": ["chemical exposure", "inhalation", "ingestion", "toxic", "symptoms"],
+      "blurb": "Medical guidance for chemical exposure and toxic inhalation.",
+      "mode": "sim",
+      "phone": "+18002221222"
+    },
+    {
+      "id": "fire_hazmat",
+      "name": "Fire / HazMat Response",
+      "handles": ["fire", "spill", "leak", "gas", "containment", "evacuation", "placard"],
+      "blurb": "On-scene containment, suppression, and evacuation coordination.",
+      "mode": "sim",
+      "phone": "+15555550111"
+    },
+    {
+      "id": "public_works",
+      "name": "Public Works / Highway",
+      "handles": ["road closure", "traffic", "highway", "infrastructure", "detour"],
+      "blurb": "Road closures, traffic control, and infrastructure support.",
+      "mode": "sim",
+      "phone": "+15555550122"
+    }
+  ]
+}

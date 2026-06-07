@@ -1,0 +1,19 @@
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.uv/
+*.egg-info/
+
+# Node / frontend (Phase 4)
+node_modules/
+dist/
+.vite/
+
+# Local data / scratch
+*.log
+.DS_Store
+
+Makefile
