@@ -229,3 +229,4 @@ Note: there is **no `agents/guidebook.py`** — the guidebook is an inline tool 
 - Reduce latency in LLMs
 - More documents, other specialized agents? e.g. medical incident, fire, etc. Will the orchestrator spin up these specialized for just one agent (calltaker) searching through all?
 - Take-over call feature
+- Fix the web research tool call to be more proactive

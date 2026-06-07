@@ -18,15 +18,20 @@ export default function App() {
   const [creds, setCreds] = useState<RoomCreds | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Auto-discover active rooms on load.
+  // Poll /rooms every 3 s until an active room appears (handles SIP calls that
+  // create a room after the dashboard is already open).
   useEffect(() => {
-    fetch(`${BACKEND}/rooms`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.rooms?.length > 0) setRoomName(data.rooms[0]);
-      })
-      .catch(() => {/* no-op — user can type the room name */});
-  }, []);
+    if (roomName) return;
+    const discover = () => {
+      fetch(`${BACKEND}/rooms`)
+        .then((r) => r.json())
+        .then((data) => { if (data.rooms?.length > 0) setRoomName(data.rooms[0]); })
+        .catch(() => {});
+    };
+    discover();
+    const id = setInterval(discover, 3000);
+    return () => clearInterval(id);
+  }, [roomName]);
 
   // Fetch token whenever we have a room name.
   useEffect(() => {

@@ -49,6 +49,7 @@ def _setup_dev_logging() -> None:
 
 _setup_dev_logging()
 
+from livekit import rtc  # noqa: E402
 from livekit.agents import (  # noqa: E402
     AgentServer,
     AgentSession,
@@ -124,6 +125,13 @@ async def _run_orchestrator(ctx: JobContext) -> None:
     asyncio.create_task(Supervisor().run(incident, session, ctx))
 
     await ctx.connect()
+
+    # Log the caller's phone number when the call comes in over SIP.
+    for p in ctx.room.remote_participants.values():
+        if p.kind == rtc.ParticipantKind.PARTICIPANT_KIND_SIP:
+            phone = p.attributes.get("sip.phoneNumber", "unknown")
+            logging.getLogger("orchestrator").info("SIP caller: %s", phone)
+            break
 
     # Dispatcher answers first so the caller hears a live line.
     await session.generate_reply(
