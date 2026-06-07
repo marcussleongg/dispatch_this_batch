@@ -105,3 +105,10 @@ ERG2024 lists isolation or evacuation distanc
 ## LLM routing
 
 - Used **TrueFoundry priority routing virtual model** with Qwen-Plus and Minimax-M3
+
+## What I would have added with more time
+
+- Human takeover. In high-stakes calls and situations in public safety, there should always be the ability for a human to takeover. I envision a button where human operators can simply takeover, and "context" for human operators are obtained from the transcripts
+- Subagents' live querying of the cloud has not been fully implemented, but it should be implemented with a hook/trigger where querying is done when the cloud index is updated
+- More specialized subagents: medical, fire incident, etc. where more protocol documents are ingested and parsed over to provide even more use cases
+- And so generalization of orchestrator agent that calls these specialized agents
