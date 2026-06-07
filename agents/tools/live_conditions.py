@@ -36,6 +36,7 @@ class LiveConditions:
         self._client = None
         self._init_lock = asyncio.Lock()
         self._write_lock = asyncio.Lock()   # serialize Rust add_docs (not concurrency-safe)
+        self._cloud_lock = asyncio.Lock()   # serialize cloud writes (guards _cloud_created flag)
         self._cloud_created = False         # True after first cloud create_index
 
         pid, key = os.getenv("MOSS_PROJECT_ID"), os.getenv("MOSS_PROJECT_KEY")
@@ -72,56 +73,73 @@ class LiveConditions:
 
     async def add(self, text: str, source: str) -> None:
         """Write a document to both the local session and the cloud index."""
-        if not await self._ensure_session():
-            return
-
         from moss import DocumentInfo
         doc = DocumentInfo(
             id=f"{source}-{uuid.uuid4().hex[:8]}",
             text=text,
             metadata={"source": source, "ts": time.time()},
         )
+        # Run both writes concurrently. The local Rust embedding can hang on
+        # first model init; running in parallel ensures cloud write always
+        # completes even if local write is slow or times out.
+        await asyncio.gather(
+            self._local_write(doc, source),
+            self._cloud_write(doc),
+            return_exceptions=True,
+        )
 
-        # Local write — serialized (Rust inner object is not concurrency-safe).
+    async def _local_write(self, doc, source: str) -> None:
+        """Write to the in-memory SessionIndex for fast same-process lookups."""
+        if not await self._ensure_session():
+            return
+        logger.debug("live: add_docs [local] waiting for lock source=%s", source)
         async with self._write_lock:
+            logger.debug("live: add_docs [local] lock acquired source=%s", source)
             try:
-                added, updated = await self._session.add_docs([doc])
+                added, updated = await asyncio.wait_for(
+                    self._session.add_docs([doc]), timeout=20.0
+                )
                 logger.info(
                     "live: add [local] source=%s added=%d updated=%d doc_count=%d index=%s",
                     source, added, updated, self._session.doc_count, self._index_name,
                 )
+            except asyncio.TimeoutError:
+                logger.warning(
+                    "live: add_docs [local] timed out after 20s source=%s index=%s"
+                    " — local lookup may lag; cloud write unaffected",
+                    source, self._index_name,
+                )
             except Exception:
-                logger.exception("live: add_docs [local] FAILED source=%s index=%s", source, self._index_name)
-                return
-
-        # Cloud write — create on first doc, append on subsequent docs, then load.
-        await self._cloud_write(doc)
+                logger.exception(
+                    "live: add_docs [local] FAILED source=%s index=%s", source, self._index_name
+                )
 
     async def _cloud_write(self, doc) -> None:
         if self._client is None:
             return
-        try:
-            if not self._cloud_created:
-                result = await self._client.create_index(self._index_name, [doc])
-                self._cloud_created = True
-                logger.info(
-                    "live: create [cloud] index=%s job_id=%s",
-                    self._index_name, getattr(result, "job_id", "n/a"),
+        async with self._cloud_lock:
+            try:
+                if not self._cloud_created:
+                    result = await self._client.create_index(self._index_name, [doc])
+                    self._cloud_created = True
+                    logger.info(
+                        "live: create [cloud] index=%s job_id=%s",
+                        self._index_name, getattr(result, "job_id", "n/a"),
+                    )
+                else:
+                    result = await self._client.add_docs(self._index_name, [doc])
+                    logger.info(
+                        "live: add [cloud] index=%s job_id=%s",
+                        self._index_name, getattr(result, "job_id", "n/a"),
+                    )
+                # Load so the index is immediately queryable by liaison agents.
+                await self._client.load_index(self._index_name)
+                logger.info("live: load [cloud] index=%s — queryable by liaison agents", self._index_name)
+            except Exception as exc:
+                logger.warning(
+                    "live: cloud write failed (local queries still work) index=%s: %s",
+                    self._index_name, exc,
                 )
-            else:
-                result = await self._client.add_docs(self._index_name, [doc])
-                logger.info(
-                    "live: add [cloud] index=%s job_id=%s",
-                    self._index_name, getattr(result, "job_id", "n/a"),
-                )
-            # Load so the index is immediately queryable by liaison agents.
-            await self._client.load_index(self._index_name)
-            logger.info("live: load [cloud] index=%s — queryable by liaison agents", self._index_name)
-        except Exception as exc:
-            logger.warning(
-                "live: cloud write failed (local queries still work) index=%s: %s",
-                self._index_name, exc,
-            )
 
     # ── Local query (call-taker, same process) ────────────────────────────────
 
