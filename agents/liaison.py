@@ -1,12 +1,12 @@
 """Phase 3: Agency Liaison — dispatched voice agent that "calls" an agency, briefs
-it on the incident, gathers guidance, and submits a FINDING to the event bus.
+it on the incident, gathers guidance, and submits a FINDING back to the supervisor.
 
-One liaison per agency (2 for the demo: Fire/HazMat + Poison Control). The liaison:
-  1. Joins its sub-room (created by connect_party in the supervisor).
-  2. Dispatches the Agency Sim into the same sub-room.
-  3. Opens with a briefing (generate_reply); the two agents have a voice conversation.
-  4. Calls submit_finding() once it has clear guidance → FINDING on the event bus.
-  5. The supervisor relays that finding to the 911 caller.
+One liaison per agency (2 for the demo: Fire/HazMat + Poison Control). The liaison
+runs in a separate OS process from the orchestrator (LiveKit spawns a fresh worker
+process per dispatched job), so it cannot share in-memory state. Instead:
+  - Facts come from dispatch metadata (snapshot at dispatch time).
+  - Findings are published to the main room via LiveKit's server-side send_data API;
+    the supervisor's data_received handler on the main room picks them up.
 """
 
 from __future__ import annotations
@@ -19,12 +19,11 @@ import textwrap
 from livekit.agents import Agent, AgentSession, RunContext, function_tool, inference
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
 from livekit.protocol.agent_dispatch import CreateAgentDispatchRequest
+from livekit.protocol.room import SendDataRequest
 
 import seed_data
-import state
 import voices
 from llm import build_llm
-from state import EventType
 
 logger = logging.getLogger("liaison")
 
@@ -59,14 +58,17 @@ def _instructions(agency: dict, facts: dict) -> str:
 class LiaisonAgent(Agent):
     def __init__(
         self,
-        incident: state.IncidentState,
         agency: dict,
+        facts: dict,
         done_event: asyncio.Event,
+        ctx,        # JobContext — used to publish the finding to the main room
+        main_room: str,
     ) -> None:
-        super().__init__(instructions=_instructions(agency, incident.facts), llm=build_llm())
-        self._incident = incident
-        self._agency = agency
+        super().__init__(instructions=_instructions(agency, facts), llm=build_llm())
+        self._agency_id = agency["id"]
         self._done_event = done_event
+        self._ctx = ctx
+        self._main_room = main_room
 
     @function_tool()
     async def submit_finding(self, context: RunContext, summary: str) -> str:
@@ -78,14 +80,25 @@ class LiaisonAgent(Agent):
         Args:
             summary: concise paragraph summarising the agency's guidance
         """
-        agency_id = self._agency["id"]
-        self._incident.add_finding(agency_id, summary)
-        asyncio.create_task(
-            self._incident.emit(EventType.FINDING, source=agency_id, summary=summary)
-        )
-        logger.info("liaison submitted finding from %s: %.80s", agency_id, summary)
+        logger.info("liaison submitting finding from %s: %.80s", self._agency_id, summary)
 
-        # Set done after a short pause so the liaison has time to say goodbye via TTS.
+        # Publish the finding to the main orchestrator room via the LiveKit server API.
+        # The supervisor's data_received handler on that room will pick it up and relay
+        # it to the caller. This crosses the process boundary cleanly.
+        payload = json.dumps({
+            "type": "finding",
+            "source": self._agency_id,
+            "summary": summary,
+        }).encode()
+        try:
+            await self._ctx.api.room.send_data(
+                SendDataRequest(room=self._main_room, data=payload, topic="finding")
+            )
+            logger.info("finding published to main room %s", self._main_room)
+        except Exception:
+            logger.exception("failed to publish finding to main room")
+
+        # Defer done so the liaison has time to say goodbye via TTS before we close.
         async def _deferred_done() -> None:
             await asyncio.sleep(6)
             self._done_event.set()
@@ -95,20 +108,17 @@ class LiaisonAgent(Agent):
 
 
 async def run_liaison(ctx, meta: dict) -> None:
-    incident_id = meta.get("incident_id")
     agency_id = meta.get("agency_id")
-
-    incident = state.get_incident(incident_id)
-    if incident is None:
-        logger.error("liaison: no incident found for id=%r", incident_id)
-        return
+    main_room = meta.get("main_room", "")
+    # Facts were snapshotted into metadata at dispatch time — no registry needed.
+    facts = meta.get("facts") or {}
 
     agency = next((a for a in seed_data.agencies() if a["id"] == agency_id), None)
     if agency is None:
         logger.error("liaison: unknown agency_id %r", agency_id)
         return
 
-    logger.info("liaison starting: agency=%s room=%s", agency_id, ctx.room.name)
+    logger.info("liaison starting: agency=%s room=%s main_room=%s", agency_id, ctx.room.name, main_room)
 
     done_event = asyncio.Event()
 
@@ -119,10 +129,14 @@ async def run_liaison(ctx, meta: dict) -> None:
         vad=ctx.proc.userdata["vad"],
     )
 
-    await session.start(agent=LiaisonAgent(incident, agency, done_event), room=ctx.room)
+    await session.start(
+        agent=LiaisonAgent(agency, facts, done_event, ctx, main_room),
+        room=ctx.room,
+    )
     await ctx.connect()
 
-    # Dispatch the Agency Sim into the same sub-room.
+    # Dispatch the Agency Sim into the same sub-room, with the facts snapshot so
+    # it can look up accurate chemical data rather than improvising.
     dispatch = await ctx.api.agent_dispatch.create_dispatch(
         CreateAgentDispatchRequest(
             agent_name=ORCHESTRATOR_NAME,
@@ -130,7 +144,7 @@ async def run_liaison(ctx, meta: dict) -> None:
             metadata=json.dumps({
                 "role": "agency_sim",
                 "agency_id": agency_id,
-                "incident_id": incident_id,
+                "facts": facts,
             }),
         )
     )
@@ -139,7 +153,7 @@ async def run_liaison(ctx, meta: dict) -> None:
     # Give the agency sim a moment to join before the liaison starts speaking.
     await asyncio.sleep(_SIM_JOIN_WAIT_S)
 
-    facts_summary = "; ".join(f"{k}={v}" for k, v in incident.facts.items())
+    facts_summary = "; ".join(f"{k}={v}" for k, v in facts.items()) or "details being gathered"
     await session.generate_reply(
         instructions=(
             f"You are calling {agency['name']}. They have just answered. "

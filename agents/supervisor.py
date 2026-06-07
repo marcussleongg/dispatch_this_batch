@@ -9,6 +9,7 @@ in-progress relay.
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 
 from livekit.agents import AgentSession
@@ -35,10 +36,18 @@ class Supervisor:
     def __init__(self) -> None:
         self._dispatched: set[str] = set()
         self._ctx = None
+        self._session: AgentSession | None = None
 
     async def run(self, incident: IncidentState, session: AgentSession, ctx) -> None:
         self._ctx = ctx
+        self._session = session
         logger.info("Supervisor started for incident %s", incident.incident_id)
+
+        # Receive findings published by liaison agents (separate OS processes) via
+        # LiveKit data messages. Liaisons can't write to our asyncio.Queue directly,
+        # so they call ctx.api.room.send_data() on this room instead.
+        ctx.room.on("data_received", self._on_data_received)
+
         while True:
             event = await incident.events.get()   # only await in the loop
             if event.type == EventType.FACT:
@@ -47,6 +56,20 @@ class Supervisor:
                 asyncio.create_task(               # fire and forget
                     self._relay_finding(session, event.payload)
                 )
+
+    def _on_data_received(self, data_packet) -> None:
+        """Handle findings published by liaison agents via LiveKit data messages."""
+        try:
+            payload = json.loads(bytes(data_packet.data).decode())
+            if payload.get("type") == "finding" and self._session is not None:
+                logger.info(
+                    "data_received finding from %s: %.80s",
+                    payload.get("source"),
+                    payload.get("summary", ""),
+                )
+                asyncio.create_task(self._relay_finding(self._session, payload))
+        except Exception:
+            logger.exception("failed to parse data_received payload")
 
     def _on_fact(self, incident: IncidentState) -> None:
         """Synchronous dispatch decisions — no awaits allowed here."""

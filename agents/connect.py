@@ -45,6 +45,10 @@ async def connect_party(
                 "role": "liaison",
                 "agency_id": agency["id"],
                 "incident_id": incident.incident_id,
+                # Pass both of these so the liaison (separate OS process) has
+                # everything it needs without touching in-memory shared state.
+                "main_room": ctx.room.name,
+                "facts": dict(incident.facts),
             }),
         )
     )

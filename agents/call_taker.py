@@ -41,7 +41,10 @@ INSTRUCTIONS = textwrap.dedent(
     3. Confirm key facts back to the caller in plain language.
     4. As soon as a fact is confirmed by the caller, call `record_fact` before
        asking the next question. Keys: location, un_number, chemical, injuries,
-       caller_safe. Only record facts the caller has explicitly confirmed.
+       caller_safe, situation. Only record facts the caller has explicitly confirmed.
+       For `situation`, write a 1–2 sentence plain-English description of what is
+       happening (e.g. "Green gas cloud from overturned tanker near Gate A, three
+       people coughing and unable to stand"). Update it as the picture clarifies.
 
     # Guidebook grounding (very important)
 
