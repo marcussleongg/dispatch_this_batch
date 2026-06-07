@@ -220,3 +220,12 @@ Note: there is **no `agents/guidebook.py`** — the guidebook is an inline tool 
 - Keep agency calls **sim** for the live run; SIP only as a rehearsed stretch (telephony fails in noisy venues).
 - Cap the swarm size for the demo (2–3 action agents) so the dashboard stays legible and latency stays tight.
 - In-process state = one call at a time, lost on crash — fine for a demo; don't add a broker for it.
+
+# To (consider) add:
+
+- Add telephony
+- Truefoundry API
+- Generalization other than this incident (remove columns in index and agent data passing)
+- Reduce latency in LLMs
+- More documents, other specialized agents? e.g. medical incident, fire, etc. Will the orchestrator spin up these specialized for just one agent (calltaker) searching through all?
+- Take-over call feature

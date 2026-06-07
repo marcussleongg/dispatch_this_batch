@@ -15,6 +15,7 @@ import asyncio
 import json
 import logging
 import textwrap
+import time
 
 from livekit.agents import Agent, AgentSession, RunContext, function_tool, inference
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
@@ -149,6 +150,24 @@ async def run_liaison(ctx, meta: dict) -> None:
         )
     )
     logger.info("dispatched agency_sim for %s: dispatch_id=%s", agency_id, dispatch.id)
+
+    # Notify the dashboard that the agency sim tile should appear.
+    sim_payload = json.dumps({
+        "type": "worker_status",
+        "ts": time.time(),
+        "incident_id": meta.get("incident_id", ""),
+        "worker_id": f"sim_{agency_id}",
+        "label": agency["name"] + " (agency)",
+        "status": "active",
+        "sub_room": ctx.room.name,
+        "parent_id": f"agency_{agency_id}",
+    }).encode()
+    try:
+        await ctx.api.room.send_data(
+            SendDataRequest(room=main_room, data=sim_payload, topic="dashboard")
+        )
+    except Exception:
+        logger.exception("failed to publish sim worker_status to main room")
 
     # Give the agency sim a moment to join before the liaison starts speaking.
     await asyncio.sleep(_SIM_JOIN_WAIT_S)

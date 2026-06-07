@@ -14,7 +14,8 @@ import logging
 import re
 import textwrap
 
-from livekit.agents import Agent, AgentSession, inference
+from livekit import rtc
+from livekit.agents import Agent, AgentSession, inference, room_io
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
 import seed_data
@@ -94,7 +95,15 @@ async def run_agency_sim(ctx, meta: dict) -> None:
         vad=ctx.proc.userdata["vad"],
     )
 
-    await session.start(agent=AgencySimAgent(agency, facts), room=ctx.room)
+    await session.start(
+        agent=AgencySimAgent(agency, facts),
+        room=ctx.room,
+        room_options=room_io.RoomOptions(
+            # The liaison is an AGENT participant; the default only links to
+            # SIP/STANDARD/CONNECTOR, so the sim would never hear it.
+            participant_kinds=[rtc.ParticipantKind.PARTICIPANT_KIND_AGENT],
+        ),
+    )
     await ctx.connect()
 
     # Hold the job alive until the liaison closes the room or the safety-net fires.
