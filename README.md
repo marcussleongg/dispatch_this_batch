@@ -1,3 +1,7 @@
+
+
+https://github.com/user-attachments/assets/c14ac4e8-0731-4e17-b7c8-ab6b1c94f6eb
+
 # Multi-agent AI dispatch system for 911 call centers
 
 One inbound 911-style call is answered by an AI call-taker (the **single voice** to the caller); a **supervisor** then spins up a **swarm of parallel action agents** mid-call — live web research + simulated agency calls — while a **command-center dashboard** streams every agent and transcript.
